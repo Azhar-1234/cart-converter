@@ -25,7 +25,6 @@ function _home_url(){
 function sk_is_license_active(){
     
      $stored_api_key = get_option('sk_license_key_cc');
-    error_log('stored api'. $stored_api_key);
     if (!$stored_api_key) {
         return false;
     }
@@ -34,7 +33,6 @@ function sk_is_license_active(){
         'last_checked' => 0,
         'last_result' => false,
     ]);
-    error_log(print_r($check_data, true));
     $now = time();
     $six_hours = 6 * HOUR_IN_SECONDS;
 
