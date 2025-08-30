@@ -13,7 +13,7 @@ Text Domain:       sk-cart-converter
 if (!defined('ABSPATH')) {
     exit;
 }
-
+define('SK_CART_CONVERTER_FILE', __FILE__);
 define( 'SS_VERSION', '1.1.0' );
 define( 'SS_ASSETS_PATH', plugin_dir_url( __FILE__ ) . 'assets' );
 

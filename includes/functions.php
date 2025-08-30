@@ -25,7 +25,7 @@ function _home_url(){
 function sk_is_license_active(){
     
      $stored_api_key = get_option('sk_license_key_cc');
-
+    error_log('stored api'. $stored_api_key);
     if (!$stored_api_key) {
         return false;
     }
@@ -34,7 +34,7 @@ function sk_is_license_active(){
         'last_checked' => 0,
         'last_result' => false,
     ]);
-
+    error_log(print_r($check_data, true));
     $now = time();
     $six_hours = 6 * HOUR_IN_SECONDS;
 
@@ -62,20 +62,61 @@ function sk_is_license_active(){
     return $check_data['last_result'];
 }
 
+function get_cart_converter_plugin_id() {
+    // Load plugin data
+    if ( ! function_exists( 'get_plugin_data' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+
+       // Use the constant defined in the main plugin file
+    if (!defined('SK_CART_CONVERTER_FILE')) {
+        return null;
+    }
+
+    $plugin_data = get_plugin_data(SK_CART_CONVERTER_FILE);
+    $plugin_name = $plugin_data['Name']; // e.g. "Cart Converter" or "SKL Customer Order data backup with google sheet"
+    // Step 1: Reverse mapping: custom name => API name
+    $name_map = [
+        'Cart Converter' => 'Cart converter',
+        'Fake Order Blocker' => 'Fake order',
+        'SKL Customer Order data backup with google sheet' => 'Google sheet',
+        'OrderPop - WooCommerce Buy Now Plugin'=> 'Order confirmation popup',
+    ];
+
+    // Get the original API name from your customized name
+    $api_plugin_name = $name_map[$plugin_name] ?? $plugin_name;
+    // Step 2: Call API
+    $response = wp_remote_get('https://portalapi.servicekey.com.bd/api/plugin/list');
+    if (is_wp_error($response)) {
+        return null;
+    }
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (!isset($data['success']) || !$data['success'] || !isset($data['result'])) {
+        return null;
+    }
+
+    // Step 3: Match plugin name and return ID
+    foreach ($data['result'] as $plugin_info) {
+        if ($plugin_info['name'] === $api_plugin_name) {
+            return $plugin_info['id'];
+        }
+    }
+}
 // Check domain authorization status
 function sk_license_check_manager($license_key='') {
 
     // Get the current site URL
     $domain = _home_url();
     $key = $license_key ? $license_key : get_option('sk_license_key_cc');
-
+    $plugin_id = get_cart_converter_plugin_id();
     // API endpoint URL with query parameters
     $api_url = add_query_arg([
         'domain' => $domain,
         'code'   => $key,
-        'plugin_name' => 'cart-converter',
-    ], 'https://portalapi.servicekey.io/api/plugin-verifications'); 
-
+        'plugin_id' => $plugin_id,
+    ], 'https://portalapi.servicekey.com.bd/api/plugin-verifications'); 
     // Make the GET request
     $response = wp_remote_get($api_url, [
         'headers' => ['Accept' => 'application/json'],
@@ -91,7 +132,7 @@ function sk_license_check_manager($license_key='') {
     $data = json_decode($response_body, true);
 
     // Check API response
-    if (!empty($data['success']) && $data['result'] === true) {
+    if (!empty($data['success']) && (bool)$data['result'] === true) {
         return true;
     }
 
