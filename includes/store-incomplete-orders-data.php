@@ -158,7 +158,7 @@ function sk_get_user_ip() {
  * Add JavaScript tracking for Order Prop forms
  */
 function sk_add_order_prop_tracking_script() {
-    if (!is_admin() && (is_shop() || is_product() || is_product_category() || is_woocommerce())) {
+ //   if (!is_admin() && (is_shop() || is_product() || is_product_category() || is_woocommerce())) {
         ?>
         <script type="text/javascript">
         jQuery(document).ready(function($) {            
@@ -233,7 +233,7 @@ function sk_add_order_prop_tracking_script() {
         });
         </script>
         <?php
-    }
+   // }
 }
 
 function act_save_abandoned_cart() {
