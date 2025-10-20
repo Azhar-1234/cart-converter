@@ -14,7 +14,7 @@ function act_add_admin_menu() {
     add_menu_page(
         'Cart Converter', // Page title
         'Cart Converter', // Menu title
-        'manage_options',  // Capability
+        SK_CC_CAPABILITY,  // Capability
         'cart-converter-dashboard', // Menu slug (points to Dashboard)
         'act_display_dashboard', // Callback function
         'dashicons-cart', // Icon
@@ -26,7 +26,7 @@ function act_add_admin_menu() {
         'cart-converter-dashboard', // Parent menu slug (Cart Converter)
         'Dashboard', // Page title
         'Dashboard', // Menu title
-        'manage_options',
+        SK_CC_CAPABILITY,
         'cart-converter-dashboard', // Same slug to make it default
         'act_display_dashboard'
     );
@@ -37,7 +37,7 @@ function act_add_admin_menu() {
             'cart-converter-dashboard',
             'Incomplete Orders',
             'Incomplete Orders',
-            'manage_options',
+            SK_CC_CAPABILITY,
             'incomplete-orders',
             'act_display_abandoned_carts'
         );
@@ -47,7 +47,7 @@ function act_add_admin_menu() {
             null, // Hidden from menu
             'Edit Abandoned Cart',
             'Edit Abandoned Cart',
-            'manage_options',
+            SK_CC_CAPABILITY,
             'edit-incomplete-orders',
             'act_edit_abandoned_cart'
         );

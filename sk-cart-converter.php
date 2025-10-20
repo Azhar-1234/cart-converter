@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 define('SK_CART_CONVERTER_FILE', __FILE__);
 define( 'SS_VERSION', '1.1.0' );
 define( 'SS_ASSETS_PATH', plugin_dir_url( __FILE__ ) . 'assets' );
+define( 'SK_CC_CAPABILITY', 'manage_cart_converter' );
 
 // Create the custom table on plugin activation
 register_activation_hook(__FILE__, 'act_create_abandoned_carts_table');
@@ -48,17 +49,60 @@ function act_create_abandoned_carts_table() {
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
-
     // Check if user_ip column exists, and add it if not (for safety with existing users)
     $columns = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'user_ip'");
     if (empty($columns)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN user_ip VARCHAR(255) DEFAULT ''");
     }
+
+    // Grant capability to admin and shop manager.
+    sk_cc_add_caps();
 }
 
 register_deactivation_hook(__FILE__, 'sk_cart_converter_deactivation');
 function sk_cart_converter_deactivation() {
     update_option('sk_license_key_cc', '');
+    sk_cc_remove_caps();
+}
+
+/**
+ * Ensure roles have the capability (in case roles were created/changed after activation).
+ */
+add_action('init', 'sk_cc_ensure_caps');
+function sk_cc_ensure_caps() {
+    $roles = array( 'administrator', 'shop_manager' );
+    foreach ( $roles as $slug ) {
+        $role = get_role( $slug );
+        if ( $role && ! $role->has_cap( SK_CC_CAPABILITY ) ) {
+            $role->add_cap( SK_CC_CAPABILITY );
+        }
+    }
+}
+
+/**
+ * Add custom capability to roles.
+ */
+function sk_cc_add_caps() {
+    $roles = array( 'administrator', 'shop_manager' );
+    foreach ( $roles as $slug ) {
+        $role = get_role( $slug );
+        if ( $role ) {
+            $role->add_cap( SK_CC_CAPABILITY );
+        }
+    }
+}
+
+/**
+ * Remove custom capability from roles.
+ */
+function sk_cc_remove_caps() {
+    $roles = array( 'administrator', 'shop_manager' );
+    foreach ( $roles as $slug ) {
+        $role = get_role( $slug );
+        if ( $role ) {
+            $role->remove_cap( SK_CC_CAPABILITY );
+        }
+    }
 }
 
 /**
