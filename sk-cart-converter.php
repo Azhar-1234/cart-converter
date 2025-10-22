@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cart Converter
 Description: Tracks abandoned carts in WooCommerce and stores specific data in a custom table.
-Version:           1.1.0
+Version:           1.1.1
 Author:            Service Key
 Author URI:        https://servicekey.com.bd/
 License:           GNU General Public License v2 or later
@@ -14,9 +14,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 define('SK_CART_CONVERTER_FILE', __FILE__);
-define( 'SS_VERSION', '1.1.0' );
+define( 'SS_VERSION', '1.1.1' );
 define( 'SS_ASSETS_PATH', plugin_dir_url( __FILE__ ) . 'assets' );
 define( 'SK_CC_CAPABILITY', 'manage_cart_converter' );
+define('SK_CART_CONVERTER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 // Create the custom table on plugin activation
 register_activation_hook(__FILE__, 'act_create_abandoned_carts_table');
@@ -61,7 +62,6 @@ function act_create_abandoned_carts_table() {
 
 register_deactivation_hook(__FILE__, 'sk_cart_converter_deactivation');
 function sk_cart_converter_deactivation() {
-    update_option('sk_license_key_cc', '');
     sk_cc_remove_caps();
 }
 
@@ -138,17 +138,16 @@ function sk_check_and_add_missing_columns() {
 add_action('init', 'sk_check_and_add_missing_columns');
 
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+$puc_file = SK_CART_CONVERTER_PLUGIN_DIR. 'plugin-update-checker/plugin-update-checker.php';
 
-if (function_exists('sk_is_license_active') && sk_is_license_active()) {
-    require 'plugin-update-checker/plugin-update-checker.php';
-
+if (file_exists($puc_file)) {
+    require $puc_file;
     $myUpdateChecker = PucFactory::buildUpdateChecker(
-        'https://servicekey.com.bd/update/cart-converter/update.json',
+        'https://portalapi.servicekey.com.bd/public/api/plugin/1', // Fixed URL
         __FILE__,
-        'sk-cart-converter'
+        'sk-cart-converter' // Match the plugin's text domain
     );
 }
-
 require_once ( 'includes/functions.php' );
 require_once ( 'includes/enqueue.php' );
 require_once ( 'includes/dashboard-menus.php' );
