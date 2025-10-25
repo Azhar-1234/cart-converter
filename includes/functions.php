@@ -75,7 +75,7 @@ function get_cart_converter_plugin_id() {
     $plugin_name = $plugin_data['Name']; // e.g. "Cart Converter" or "SKL Customer Order data backup with google sheet"
     // Step 1: Reverse mapping: custom name => API name
     $name_map = [
-        'Cart Converter' => 'Cart converter',
+        'Cart Converter' => 'Cart Converter',
         'Fake Order Blocker' => 'Fake order',
         'SKL Customer Order data backup with google sheet' => 'Google sheet',
         'OrderPop - WooCommerce Buy Now Plugin'=> 'Order confirmation popup',

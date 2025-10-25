@@ -2,7 +2,7 @@
 /*
 Plugin Name: Cart Converter
 Description: Tracks abandoned carts in WooCommerce and stores specific data in a custom table.
-Version:           1.1.1
+Version:           1.1.2
 Author:            Service Key
 Author URI:        https://servicekey.com.bd/
 License:           GNU General Public License v2 or later
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 define('SK_CART_CONVERTER_FILE', __FILE__);
-define( 'SS_VERSION', '1.1.1' );
+define( 'SS_VERSION', '1.1.2' );
 define( 'SS_ASSETS_PATH', plugin_dir_url( __FILE__ ) . 'assets' );
 define( 'SK_CC_CAPABILITY', 'manage_cart_converter' );
 define('SK_CART_CONVERTER_PLUGIN_DIR', plugin_dir_path(__FILE__));
