@@ -263,7 +263,6 @@ function act_save_abandoned_cart() {
     $form_data = $_POST['form_data'];
     
     // Log for debugging
-    error_log('Cart Converter: act_save_abandoned_cart called with data: ' . print_r($form_data, true));
 
     // Get User IP Address
     $user_ip = '';
