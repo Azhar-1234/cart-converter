@@ -165,6 +165,12 @@ function sk_add_order_prop_tracking_script() {
             var abandonedCartTimer;
             var isOrderSubmitted = false;
             var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+            // Persistent session id so repeated field changes update same row.
+            var ccSessionId = localStorage.getItem('sk_op_session_id');
+            if (!ccSessionId) {
+                ccSessionId = 'sk_op_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+                localStorage.setItem('sk_op_session_id', ccSessionId);
+            }
             
             // Track form field changes in Order Prop popup
             $(document).on('input change', '#quick-order-form input, #quick-order-form select, #quick-order-form textarea', function() {
@@ -207,13 +213,16 @@ function sk_add_order_prop_tracking_script() {
                     billing_country: formObj.country || formObj.billing_country || 'BD',
                     payment_method: formObj.payment_method || '',
                     order_comments: formObj.order_note || formObj.order_comments || '',
-                    session_id: 'op_js_' + Date.now()
+                    session_id: ccSessionId
                 };
-                
-                // Only save if we have essential data
-                if (!cartData.billing_first_name && !cartData.billing_phone && !cartData.billing_email) {
+                // Require phone before saving (primary identifier) to avoid early duplicate inserts.
+                if (!cartData.billing_phone) {
                     return;
-                }                
+                }
+                // If email blank do not send it (we will preserve existing on server).
+                if (!cartData.billing_email) {
+                    delete cartData.billing_email;
+                }
                 // Send via AJAX
                 $.ajax({
                     url: ajaxUrl,
@@ -278,22 +287,22 @@ function act_save_abandoned_cart() {
         'user_ip' => sanitize_text_field($user_ip), // Sanitizing IP address
         'order_no' => 'Abandoned-' . uniqid(),
         'products' => serialize($products),
-        'user_name' => sanitize_text_field($form_data['billing_first_name'] . ' ' . $form_data['billing_last_name']),
-        'first_name' => sanitize_text_field($form_data['billing_first_name']),
-        'last_name' => sanitize_text_field($form_data['billing_last_name']),
-        'email' => sanitize_email($form_data['billing_email']),
+        'user_name' => sanitize_text_field(($form_data['billing_first_name'] ?? '') . ' ' . ($form_data['billing_last_name'] ?? '')),
+        'first_name' => sanitize_text_field($form_data['billing_first_name'] ?? ''),
+        'last_name' => sanitize_text_field($form_data['billing_last_name'] ?? ''),
+        'email' => isset($form_data['billing_email']) ? sanitize_email($form_data['billing_email']) : '',
         'phone' => sanitize_text_field($form_data['billing_phone']),
         'address' => serialize(array(
-            'billing_address_1' => sanitize_text_field($form_data['billing_address_1']),
-            'billing_address_2' => sanitize_text_field($form_data['billing_address_2']),
-            'billing_city' => sanitize_text_field($form_data['billing_city']),
-            'billing_state' => sanitize_text_field($form_data['billing_state']),
-            'billing_postcode' => sanitize_text_field($form_data['billing_postcode']),
-            'billing_country' => sanitize_text_field($form_data['billing_country'])
+            'billing_address_1' => sanitize_text_field($form_data['billing_address_1'] ?? ''),
+            'billing_address_2' => sanitize_text_field($form_data['billing_address_2'] ?? ''),
+            'billing_city' => sanitize_text_field($form_data['billing_city'] ?? ''),
+            'billing_state' => sanitize_text_field($form_data['billing_state'] ?? ''),
+            'billing_postcode' => sanitize_text_field($form_data['billing_postcode'] ?? ''),
+            'billing_country' => sanitize_text_field($form_data['billing_country'] ?? 'BD')
         )),
-        'additional_text' => sanitize_textarea_field($form_data['order_comments']),
-        'checkout_method' => sanitize_text_field($form_data['payment_method']),
-        'session_id' => sanitize_text_field($form_data['session_id']), // Add session ID 
+        'additional_text' => sanitize_textarea_field($form_data['order_comments'] ?? ''),
+        'checkout_method' => sanitize_text_field($form_data['payment_method'] ?? ''),
+        'session_id' => sanitize_text_field($form_data['session_id']),
         'updated_status' => 'none' // Add session ID 
     );
 
@@ -303,10 +312,24 @@ function act_save_abandoned_cart() {
         $wpdb->prepare("SELECT * FROM $table_name WHERE phone = %s OR session_id = %s", $form_data['billing_phone'], $form_data['session_id'])
     );
 
-    if (!$existing_cart) {
-        $wpdb->insert($table_name, $data);
-    } else {
+    if ($existing_cart) {
+        // Preserve existing email if incoming blank
+        if (empty($data['email']) && !empty($existing_cart->email)) {
+            $data['email'] = $existing_cart->email;
+        }
         $wpdb->update($table_name, $data, array('id' => $existing_cart->id));
+    } else {
+        // Safety: if email blank but a row already exists for this phone, update that instead of inserting duplicate
+        if (empty($data['email'])) {
+            $phone_row = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE phone = %s", $data['phone']));
+            if ($phone_row) {
+                unset($data['email']); // do not overwrite existing email with empty
+                $wpdb->update($table_name, $data, array('id' => $phone_row));
+                wp_send_json_success('Cart updated successfully');
+                return;
+            }
+        }
+        $wpdb->insert($table_name, $data);
     }
 
     wp_send_json_success('Cart saved successfully');
