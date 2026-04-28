@@ -51,20 +51,46 @@ function export_abandoned_carts_csv(){
     fputcsv($output, ['Products', 'User Name', 'Email', 'Phone', 'Address', 'IP Address', 'Status', 'Created At']);
 
     foreach ($abandoned_carts as $cart) {
-        $products = unserialize($cart->products);
-        if (empty($products) || !is_array($products)) {
-            continue; // Skip if unserialized value is not an array or empty
+        // Products can be empty/malformed; don't skip the row—export whatever we have.
+        $products = [];
+        if (!empty($cart->products)) {
+            $maybe_products = @unserialize($cart->products);
+            if (is_array($maybe_products)) {
+                $products = $maybe_products;
+            }
         }
+
         $product_names = [];
         foreach ($products as $product) {
-            $product_names[] = $product['product_name'];
+            if (!is_array($product)) {
+                continue;
+            }
+            $name = isset($product['product_name']) ? trim((string) $product['product_name']) : '';
+            if ($name !== '') {
+                $product_names[] = $name;
+            }
         }
-        // 1. Unserialize it
-        $address_data = unserialize($cart->address);
-        if (is_array($address_data)) {
-            $formatted_address = implode(', ', array_filter($address_data));
+        $products_cell = !empty($product_names) ? implode(', ', $product_names) : '';
+
+        // Address can be empty/malformed; default to empty string.
+        $formatted_address = '';
+        if (!empty($cart->address)) {
+            $address_data = @unserialize($cart->address);
+            if (is_array($address_data)) {
+                $formatted_address = implode(', ', array_filter(array_map('trim', array_map('strval', $address_data))));
+            }
         }
-        fputcsv($output, [implode(', ', $product_names), $cart->user_name, $cart->email, $cart->phone, $formatted_address, $cart->user_ip, $cart->updated_status, $cart->created_at]);
+
+        fputcsv($output, [
+            $products_cell,
+            (string) ($cart->user_name ?? ''),
+            (string) ($cart->email ?? ''),
+            (string) ($cart->phone ?? ''),
+            $formatted_address,
+            (string) ($cart->user_ip ?? ''),
+            (string) ($cart->updated_status ?? ''),
+            (string) ($cart->created_at ?? ''),
+        ]);
     }
 
     fclose($output);

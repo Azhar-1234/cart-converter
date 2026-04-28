@@ -291,7 +291,7 @@ function act_save_abandoned_cart() {
         'first_name' => sanitize_text_field($form_data['billing_first_name'] ?? ''),
         'last_name' => sanitize_text_field($form_data['billing_last_name'] ?? ''),
         'email' => isset($form_data['billing_email']) ? sanitize_email($form_data['billing_email']) : '',
-        'phone' => sanitize_text_field($form_data['billing_phone']),
+        'phone' => isset($form_data['billing_phone']) ?  sanitize_text_field($form_data['billing_phone']) : '',
         'address' => serialize(array(
             'billing_address_1' => sanitize_text_field($form_data['billing_address_1'] ?? ''),
             'billing_address_2' => sanitize_text_field($form_data['billing_address_2'] ?? ''),
@@ -307,6 +307,11 @@ function act_save_abandoned_cart() {
     );
 
    // wp_send_json_success($data);
+    if (!empty($form_data['billing_phone'])) {
+        $existing_cart = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $table_name WHERE phone = %s OR session_id = %s", $form_data['billing_phone'], $form_data['session_id'])
+        );
+    }
 
     $existing_cart = $wpdb->get_row(
         $wpdb->prepare("SELECT * FROM $table_name WHERE phone = %s OR session_id = %s", $form_data['billing_phone'], $form_data['session_id'])
